@@ -98,6 +98,6 @@ void loop() {
   
   delay(5);
   nh.spinOnce(); 
-  delay(500);
+  delay(100);
 }
 
