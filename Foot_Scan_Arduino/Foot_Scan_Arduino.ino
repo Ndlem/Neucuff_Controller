@@ -24,8 +24,17 @@ Adafruit_VCNL4010 vcnl;
 #endif
 
 
-//I2C Library (In progress)
-//#include <SoftI2C.h>
+//I2C Library
+//Defining pins for SCL/SDA
+//Set digital pin 7 to SCL
+#define SCL_PORT PORTD
+#define SCL_PIN 7
+
+//Set analog pin 5 to SDA
+#define SDA_PORT PORTC
+#define SDA_PIN 5
+
+#include <SoftI2CMaster.h>
 
 //Input
 u8 IR = A0;
@@ -34,9 +43,6 @@ u8 FSR = A1;
 //Outputs
 u8 led = 13;
 u8 vib_1 = 11;
-
-
-//Defining pins for SCL/SDA
 
 
 //Setup methods
@@ -59,6 +65,8 @@ void setup() {
     while (1);
   }
   Serial.println("Found VCNL4010");
+
+  i2c_init();
 }
 
 void blink(int d){
@@ -76,8 +84,14 @@ void blink(int d){
 //Main methods
 void loop() {
   //Getting the values from the sensors
+  //IR
   int IR_dis = sharp.distance();
-  float Prox_dis = prox_convert(vcnl.readProximity());
+
+  //Proximity
+  float Prox_dis_1 = prox_convert(vcnl.readProximity());
+  float Prox_dis_2 = digitalRead(
+  
+  //FSR
   boolean FSR_trig = bool_convert(analogRead(FSR));
   
   //Print info to serial monitor
@@ -86,8 +100,11 @@ void loop() {
   Serial.println(IR_dis);
 
   //Proximity Sensor
-  Serial.print("Prox (MM): ");
-  Serial.println(Prox_dis);
+  Serial.println("Prox (MM): ");
+  Serial.print("Front: ")
+  Serial.println(Prox_dis_1);
+  Serial.print("Back: ");
+  Serial.print(Prox_dis_2);
 
   //FSR Sensor
   Serial.print("FSR Pressed?: ");
@@ -158,4 +175,5 @@ void check_reset(int IR_dis, float Prox_dis, boolean FSR_trig) {
     digitalWrite(led, LOW);
   }
 }
+
 
