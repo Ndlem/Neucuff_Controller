@@ -1,16 +1,18 @@
-/*Nick Lemiesz, 7/7/16
- *Arduino Neucuff Leg Tracker
- *   The system consists of 6 input sensors: 1 IR beacon, 2 proximity readers, and 3 Force-Sensitive Resistors (FSRs).
- *   It is to track a person's wlaking with the various sensors and activate the Neucuff if necesary.
- *   There is also  a set of vibro-tacilte snesors that output a vibration for to give the user a bit of feedback.
- *   
- *   This system works exclusively with the systems built for Arduino. This is NOT hte ROS version of the code. 
- *   
- *   Libraries used: 
- *      Sharp IR: http://playground.arduino.cc/Main/SharpIR
- *      Proximity Sensor: https://github.com/adafruit/Adafruit_VCNL4010
- *      I2C Library (turning different pins into SCL/SDA for more proximity sensors): http://playground.arduino.cc/Main/SoftwareI2CLibrary
- */
+/*Nick Lemiesz, 7/19/16
+  Arduino Neucuff Leg Tracker
+     The system consists of 5 input sensors: 1 IR beacon, 1 proximity reader, and 3 Force-Sensitive Resistors (FSRs).
+     It is to track a person's walking with the various sensors and activate the Neucuff if necesary.
+     There is also  a set of vibro-tacilte snesors that output a vibration for to give the user a bit of feedback.
+
+     This system works exclusively with the systems built for Arduino. This is NOT hte ROS version of the code.
+
+     Libraries used:
+        Sharp IR: http://playground.arduino.cc/Main/SharpIR
+        Proximity Sensor: https://github.com/adafruit/Adafruit_VCNL4010
+
+     Current build: 7/19/16
+        Added button input that starts recording when held down, and stops when the button is at rest.
+*/
 //IR package
 #include <SharpIR.h>
 SharpIR sharp(0, 25, 93, 1080);
@@ -20,56 +22,50 @@ SharpIR sharp(0, 25, 93, 1080);
 #include "Adafruit_VCNL4010.h"
 Adafruit_VCNL4010 vcnl;
 #if defined(ARDUINO_ARCH_SAMD)
-  #define Serial SerialUSB
+#define Serial SerialUSB
 #endif
-
-
-//I2C Library
-//Defining pins for SCL/SDA
-//Set digital pin 7 to SCL
-#define SCL_PORT PORTD
-#define SCL_PIN 7
-
-//Set analog pin 5 to SDA
-#define SDA_PORT PORTC
-#define SDA_PIN 5
-
-#include <SoftI2CMaster.h>
 
 //Input
 u8 IR = A0;
-u8 FSR = A1;
+u8 FSR_FL = A1;
+u8 FSR_FR = A2;
+u8 FSR_Bk = A3;
+int buttonPin = 8;
 
 //Outputs
 u8 led = 13;
-u8 vib_1 = 11;
 
+//Other
+//Initialize timestamp (counter)
+int timestamp = 0;
+
+int val = 0;
 
 //Setup methods
 void setup() {
   //Input pin
-  pinMode(FSR, INPUT);
-  
+  pinMode(FSR_FL, INPUT);
+  pinMode(FSR_FR, INPUT);
+  pinMode(FSR_Bk, INPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+
   //Output pins
   pinMode(led, OUTPUT);
-  pinMode(vib_1, OUTPUT);
-  
+
   Serial.begin(9600);
   delay(500);
-  
+
   //Simple blink function to determine that the setup is done
   blink(250);
 
-  if (! vcnl.begin()){
+  if (! vcnl.begin()) {
     Serial.println("Prox sensor(s) not found");
     while (1);
   }
   Serial.println("Found VCNL4010");
-
-  i2c_init();
 }
 
-void blink(int d){
+void blink(int d) {
   digitalWrite(led, HIGH);
   delay(d);
   digitalWrite(led, LOW);
@@ -83,47 +79,77 @@ void blink(int d){
 
 //Main methods
 void loop() {
-  //Getting the values from the sensors
-  //IR
-  int IR_dis = sharp.distance();
+  val = digitalRead(buttonPin);
 
-  //Proximity
-  float Prox_dis_1 = prox_convert(vcnl.readProximity());
-  float Prox_dis_2 = digitalRead(
-  
-  //FSR
-  boolean FSR_trig = bool_convert(analogRead(FSR));
-  
-  //Print info to serial monitor
-  //IR Sensor
-  Serial.print("Infared (CM): ");
-  Serial.println(IR_dis);
+  if (val == LOW) {
+    //Getting the values from the sensors
+    //IR
+    int IR_dis = sharp.distance();
 
-  //Proximity Sensor
-  Serial.println("Prox (MM): ");
-  Serial.print("Front: ")
-  Serial.println(Prox_dis_1);
-  Serial.print("Back: ");
-  Serial.print(Prox_dis_2);
+    //Proximity
+    float Prox_dis = prox_convert(vcnl.readProximity());
 
-  //FSR Sensor
-  Serial.print("FSR Pressed?: ");
-  if (FSR_trig){
-   Serial.println("Yes");    
+    //FSRs
+    boolean FSR_FL_trig  = bool_convert(analogRead(FSR_FL));
+    boolean FSR_FR_trig  = bool_convert(analogRead(FSR_FR));
+    boolean FSR_Bk_trig  = bool_convert(analogRead(FSR_Bk));
+
+    //Print info to serial monitor
+    Serial.print("Timestamp (ms): ");
+    Serial.println(timestamp);
+
+    //IR Sensor
+    Serial.print("Infared (cm): ");
+    Serial.println(IR_dis);
+
+    //Proximity Sensor
+    Serial.print("Prox (mm): ");
+    Serial.println(Prox_dis);
+
+    //FSR Sensors
+    Serial.println("FSRs pressed: ");
+
+    Serial.print("  Front Left: ");
+    if (FSR_FL_trig == true) {
+      Serial.println("Yes");
+    }
+    else {
+      Serial.println("No");
+    }
+
+
+    Serial.print("  Front Right: ");
+    if (FSR_FR_trig == true) {
+      Serial.println("Yes");
+    }
+    else {
+      Serial.println("No");
+    }
+
+    Serial.print("  Back: ");
+    if (FSR_FL_trig == true) {
+      Serial.println("Yes");
+    }
+    else {
+      Serial.println("No");
+    }
+
+    Serial.println();
+    Serial.println();
+
+
+    //Checks the info from the sensors and activates the LED appropriately
+    //check_IR(IR_dis);
+    //check_Prox(Prox_dis);
+    //check_FSR(FSR_FL);
+    //check_FSR(FSR_FR);
+    //check_FSR(FSR_Bk);
+    //check_reset(IR_dis, Prox_dis, FSR_FL_trig, FSR_FR_trig, FSR_Bk_trig);
+
+    //Delay between sensor readings
+    delay(250);
+    timestamp = timestamp + 250;
   }
-  else {
-   Serial.println("No");
-  }
-  Serial.println("");
-  
-  //Checks the info from the sensors and activates the LED appropriately
-  check_IR(IR_dis);
-  check_Prox(Prox_dis);
-  check_FSR(FSR_trig);
-  check_reset(IR_dis, Prox_dis, FSR_trig);
-
-  //Delay between sensor readings
-  delay(1000);
 }
 
 float prox_convert (float prox) {
@@ -135,7 +161,7 @@ float prox_convert (float prox) {
 
 boolean bool_convert (int value) {
   //Converts the value given by the FSR into a boolean
-  if (value <= 15){
+  if (value <= 10) {
     return true;
   }
   else {
@@ -158,20 +184,19 @@ void check_Prox (int P_Read) {
   //Checks if Prox detector finds object within 10 mm
   if (P_Read <= 10.0) {
     digitalWrite(led, HIGH);
-    digitalWrite(vib_1, HIGH);
   }
 }
 
-void check_FSR (boolean FSR_read) {
+void check_FSR (int FSR_read) {
   //Cehcks if the FSR is pressed
-  if (FSR_read == true) {
+  if (FSR_read == 0) {
     digitalWrite(led, HIGH);
   }
 }
 
-void check_reset(int IR_dis, float Prox_dis, boolean FSR_trig) {
+void check_reset(int IR_dis, float Prox_dis, int FSR_FL_trig, int FSR_FR_trig, int FSR_Bk_trig) {
   //Calls for a reset if the values are back to normal
-  if ((IR_dis > 15 && IR_dis < 90) && (Prox_dis > 10) && (FSR_trig == false)) {
+  if ((IR_dis > 15 && IR_dis < 90) && (Prox_dis > 10) && (FSR_FL_trig != 0) && (FSR_FR_trig != 0) && (FSR_Bk_trig != 0)) {
     digitalWrite(led, LOW);
   }
 }

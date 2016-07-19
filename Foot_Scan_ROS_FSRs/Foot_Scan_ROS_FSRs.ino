@@ -72,8 +72,6 @@ ros::Subscriber<std_msgs::Int8> sub_FR("fsr_FR_data", &FSR_FR_Cb);
 ros::Subscriber<std_msgs::Int8> sub_Bk("fsr_Bk_data", &FSR_Bk_Cb);
 
 void setup() {
-  //pinMode(ir_sense,INPUT);
-  //pinMode(led, OUTPUT);
   nh.initNode();
   delay(1000);
   nh.advertise(fsr_FL_data);
@@ -98,6 +96,6 @@ void loop() {
   
   delay(5);
   nh.spinOnce(); 
-  delay(500);
+  delay(100);
 }
 
