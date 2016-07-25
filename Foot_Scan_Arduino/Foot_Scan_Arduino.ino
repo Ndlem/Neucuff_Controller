@@ -1,18 +1,27 @@
-/*Nick Lemiesz, 7/19/16
+/*Nick Lemiesz, 7/25/16
   Arduino Neucuff Leg Tracker
      The system consists of 5 input sensors: 1 IR beacon, 1 proximity reader, and 3 Force-Sensitive Resistors (FSRs).
-     It is to track a person's walking with the various sensors and activate the Neucuff if necesary.
-     There is also  a set of vibro-tacilte snesors that output a vibration for to give the user a bit of feedback.
+     It is to track a person's walking with the various sensors and activate the Neucuff if necessary.
+     There is also a set of vibro-tacilte snesors that output a vibration for to give the user a bit of feedback.
 
-     This system works exclusively with the systems built for Arduino. This is NOT hte ROS version of the code.
+     This system works exclusively with the systems built for Arduino. This is NOT the ROS version of the code.
 
      Libraries used:
         Sharp IR: http://playground.arduino.cc/Main/SharpIR
         Proximity Sensor: https://github.com/adafruit/Adafruit_VCNL4010
 
-     Current build: 7/19/16
-        Added button input that starts recording when held down, and stops when the button is at rest.
+     Changes: 
+     7/19/16
+          Added button input that starts recording when held down, and stops when the button is at rest.
+     7/25/16
+          Added XBee support to output data in the form: [timestamp, IR, Prox, FL FSR, FR FSR, Bk FSR]
 */
+
+//SoftwareSerial package for using XBees
+#include <SoftwareSerial.h>
+SoftwareSerial XBee(2, 3);          // Set RX to pin 2 and TX to pin 3
+
+
 //IR package
 #include <SharpIR.h>
 SharpIR sharp(0, 25, 93, 1080);
@@ -52,6 +61,9 @@ void setup() {
   //Output pins
   pinMode(led, OUTPUT);
 
+  //Xbee startup
+  XBee.begin(9600);
+  
   Serial.begin(9600);
   delay(500);
 
@@ -94,7 +106,21 @@ void loop() {
     boolean FSR_FR_trig  = bool_convert(analogRead(FSR_FR));
     boolean FSR_Bk_trig  = bool_convert(analogRead(FSR_Bk));
 
-    //Print info to serial monitor
+    //Convert values into Strings to print to screen
+    String ts = String(timestamp);
+    String ir = String(IR_dis);
+    String pr = String(Prox_dis);
+    
+    
+    //Converting the FSR values
+    String fsr_fl = String(FSR_FL_trig);
+    String fsr_fr = String(FSR_FR_trig);
+    String fsr_bk = String(FSR_Bk_trig);
+    
+    XBee.print("[" + ts + ", " + ir + ", " + pr + ", " + fsr_fl + ", " + fsr_fr + ", " + fsr_bk + "]");
+ 
+
+    /*//Print info to serial monitor (for use of basic publisher)
     Serial.print("Timestamp (ms): ");
     Serial.println(timestamp);
 
@@ -132,19 +158,18 @@ void loop() {
     }
     else {
       Serial.println("No");
-    }
+    }*/
 
     Serial.println();
-    Serial.println();
 
 
-    //Checks the info from the sensors and activates the LED appropriately
-    //check_IR(IR_dis);
-    //check_Prox(Prox_dis);
-    //check_FSR(FSR_FL);
-    //check_FSR(FSR_FR);
-    //check_FSR(FSR_Bk);
-    //check_reset(IR_dis, Prox_dis, FSR_FL_trig, FSR_FR_trig, FSR_Bk_trig);
+    /*//Checks the info from the sensors and activates the LED appropriately
+    check_IR(IR_dis);
+    check_Prox(Prox_dis);
+    check_FSR(FSR_FL);
+    check_FSR(FSR_FR);
+    check_FSR(FSR_Bk);
+    check_reset(IR_dis, Prox_dis, FSR_FL_trig, FSR_FR_trig, FSR_Bk_trig); */
 
     //Delay between sensor readings
     delay(250);

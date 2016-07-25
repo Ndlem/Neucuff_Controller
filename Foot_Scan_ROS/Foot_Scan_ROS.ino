@@ -25,12 +25,12 @@
 SharpIR sharp(0, 25, 93, 1080);
 
 //Proximity package
-//#include <Wire.h>
-//#include "Adafruit_VCNL4010.h"
-//Adafruit_VCNL4010 vcnl;
-//#if defined(ARDUINO_ARCH_SAMD)
-  //#define Serial SerialUSB
-//#endif
+#include <Wire.h>
+#include "Adafruit_VCNL4010.h"
+Adafruit_VCNL4010 vcnl;
+#if defined(ARDUINO_ARCH_SAMD)
+  #define Serial SerialUSB
+#endif
 
 //Node setup
 ros::NodeHandle_<ArduinoHardware, 2, 2, 80, 105> nh;
@@ -38,8 +38,7 @@ ros::NodeHandle_<ArduinoHardware, 2, 2, 80, 105> nh;
 //Publishers
 std_msgs::Int8 msg_ir;
 
-//std_msgs::Float32 msg_prox_f;
-//std_msgs::Float32 msg_prox_b;
+std_msgs::Float32 msg_prox;
 
 //std_msgs::Int8 msg_fsr_1;
 //std_msgs::Int8 msg_fsr_2;
@@ -49,8 +48,7 @@ std_msgs::Int8 msg_ir;
   ros::Publisher IR("IR", &msg_ir);
 
   //Proximity Publishers
-  //ros::Publisher ProxF("Prox_Frt", &msg_prox_f);
-  //ros::Publisher ProxB("Prox_Bck", &msg_prox_b);
+  ros::Publisher ProxF("Prox_Frt", &msg_prox);
  
   //FSR Publishers
   //ros::Publisher FSR1("FSR_1", &msg_fsr_1);
@@ -79,7 +77,7 @@ void call_IR (const std_msgs::Int8 &IR_Read) {
 }
 
 //Proximity checks
-void call_Prox_Fnt (const std_msgs::Float32 &P_Read) {
+void call_Prox (const std_msgs::Float32 &P_Read) {
   //Checks if Prox detector finds object within 10 mm
   if (P_Read.data <= 10.0) {
     digitalWrite(led, HIGH);
@@ -104,7 +102,7 @@ void check_reset(int IR_dis, float Prox_dis, boolean FSR_trig) {
 
 //Subscribers (callbacks above)
 ros::Subscriber<std_msgs::Int8> IR_read("IR_data", &call_IR);
-ros::Subscriber<std_msgs::Float32> Prox_read("Prox_data", &call_Prox_Fnt);
+ros::Subscriber<std_msgs::Float32> Prox_read("Prox_data", &call_Prox);
 //ros::Subscriber<std_msgs::Bool> FSR_read("FSR_data", &call_FSR);
 
 
@@ -124,18 +122,17 @@ void setup() {
   //Simple blink function to determine that the setup is done
   blink(250);
 
-  //if (! vcnl.begin()){
-    //Serial.println("Prox sensor(s) not found");
-    //while (1);
-  //}
-  //Serial.println("Found VCNL4010");
+  if (! vcnl.begin()){
+    Serial.println("Prox sensor(s) not found");
+    while (1);
+  }
+  Serial.println("Found VCNL4010");
 
   //Setting up publishers
   nh.advertise(IR);
   
-  //nh.advertise(ProxF);
-  //nh.advertise(ProxB);
-  
+  nh.advertise(ProxF);
+    
   //nh.advertise(FSR1);
   //nh.advertise(FSR2);
   //nh.advertise(FSR3);
