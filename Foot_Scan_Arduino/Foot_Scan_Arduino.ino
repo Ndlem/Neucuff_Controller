@@ -1,8 +1,8 @@
-/*Nick Lemiesz, 7/25/16
+/*Nick Lemiesz, 8/16/16
   Arduino Neucuff Leg Tracker
      The system consists of 5 input sensors: 1 IR beacon, 1 proximity reader, and 3 Force-Sensitive Resistors (FSRs).
      It is to track a person's walking with the various sensors and activate the Neucuff if necessary.
-     There is also a set of vibro-tacilte snesors that output a vibration for to give the user a bit of feedback.
+     There is also a set of vibro-tacilte sensors that output a vibration for to give the user a bit of feedback (To be added).
 
      This system works exclusively with the systems built for Arduino. This is NOT the ROS version of the code.
 
@@ -15,6 +15,9 @@
           Added button input that starts recording when held down, and stops when the button is at rest.
      7/25/16
           Added XBee support to output data in the form: [timestamp, IR, Prox, FL FSR, FR FSR, Bk FSR]
+     8/16/16
+          Cleaned up code a bit by taking out unnecessary parts and commenting out the check() methods. These are to be used
+            later for activating the vibro-tactile sensors, as well as the solenoid valves to operate the airflow of the Neucuff.
 */
 
 //SoftwareSerial package for using XBees
@@ -91,9 +94,6 @@ void blink(int d) {
 
 //Main methods
 void loop() {
-  val = digitalRead(buttonPin);
-
-  if (val == LOW) {
     //Getting the values from the sensors
     //IR
     int IR_dis = sharp.distance();
@@ -118,48 +118,7 @@ void loop() {
     String fsr_bk = String(FSR_Bk_trig);
     
     XBee.print("[" + ts + ", " + ir + ", " + pr + ", " + fsr_fl + ", " + fsr_fr + ", " + fsr_bk + "]");
- 
-
-    /*//Print info to serial monitor (for use of basic publisher)
-    Serial.print("Timestamp (ms): ");
-    Serial.println(timestamp);
-
-    //IR Sensor
-    Serial.print("Infared (cm): ");
-    Serial.println(IR_dis);
-
-    //Proximity Sensor
-    Serial.print("Prox (mm): ");
-    Serial.println(Prox_dis);
-
-    //FSR Sensors
-    Serial.println("FSRs pressed: ");
-
-    Serial.print("  Front Left: ");
-    if (FSR_FL_trig == true) {
-      Serial.println("Yes");
-    }
-    else {
-      Serial.println("No");
-    }
-
-
-    Serial.print("  Front Right: ");
-    if (FSR_FR_trig == true) {
-      Serial.println("Yes");
-    }
-    else {
-      Serial.println("No");
-    }
-
-    Serial.print("  Back: ");
-    if (FSR_FL_trig == true) {
-      Serial.println("Yes");
-    }
-    else {
-      Serial.println("No");
-    }*/
-
+    Serial.println("[" + ts + ", " + ir + ", " + pr + ", " + fsr_fl + ", " + fsr_fr + ", " + fsr_bk + "]");
     Serial.println();
 
 
@@ -175,12 +134,11 @@ void loop() {
     delay(250);
     timestamp = timestamp + 250;
   }
-}
 
 float prox_convert (float prox) {
   //Converts values of Proximity sensor (2^16, 0 to 65536) to millimeters (0 to 20)
-  float var = map(prox, 65536, 0, 0, 200);
-  var = var / 10;
+  float var = map(prox, 65536, 0, 0, 2000);
+  
   return var;
 }
 
@@ -197,7 +155,7 @@ boolean bool_convert (int value) {
 
 
 
-//Check methods
+/*//Check methods
 void check_IR (int IR_Read) {
   //Checks if IR detector find foot out of bounds of 90 cm and within 15 cm
   if (IR_Read <= 15 || IR_Read >= 90) {
@@ -224,6 +182,6 @@ void check_reset(int IR_dis, float Prox_dis, int FSR_FL_trig, int FSR_FR_trig, i
   if ((IR_dis > 15 && IR_dis < 90) && (Prox_dis > 10) && (FSR_FL_trig != 0) && (FSR_FR_trig != 0) && (FSR_Bk_trig != 0)) {
     digitalWrite(led, LOW);
   }
-}
+}*/
 
 
